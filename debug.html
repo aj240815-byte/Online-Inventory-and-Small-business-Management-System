@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIMS - Debug Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .log { background: #000; color: #00ff00; padding: 10px; border-radius: 3px; font-family: monospace; height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>JIMS API Debug Tool</h1>
+    
+    <div class="test-section">
+        <h2>1. Test API Connection</h2>
+        <button onclick="testAPI()">Test API Endpoints</button>
+        <div id="api-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Test Database</h2>
+        <button onclick="testDatabase()">Test Database Connection</button>
+        <div id="db-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Console Log</h2>
+        <div class="log" id="console-log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <script>
+        // Override console.log to display on page
+        const originalLog = console.log;
+        const originalError = console.error;
+        const logDiv = document.getElementById('console-log');
+        
+        function addToLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : '#00ff00';
+            logDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        async function testAPI() {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = '<p>Testing API endpoints...</p>';
+            
+            const endpoints = [
+                'test-api.php',
+                'api/products.php',
+                'api/sales.php', 
+                'api/suppliers.php',
+                'api/reports.php?type=dashboard'
+            ];
+            
+            let results = '<h3>API Test Results:</h3>';
+            
+            for (const endpoint of endpoints) {
+                try {
+                    console.log(`Testing: ${endpoint}`);
+                    const response = await fetch(endpoint);
+                    
+                    const result = {
+                        endpoint: endpoint,
+                        status: response.status,
+                        statusText: response.statusText,
+                        ok: response.ok,
+                        headers: Object.fromEntries(response.headers.entries())
+                    };
+                    
+                    // Try to get response text
+                    const responseText = await response.text();
+                    result.responseText = responseText.substring(0, 500) + (responseText.length > 500 ? '...' : '');
+                    
+                    // Try to parse as JSON
+                    try {
+                        result.json = JSON.parse(responseText);
+                    } catch (e) {
+                        result.jsonError = e.message;
+                    }
+                    
+                    const cssClass = result.ok ? 'success' : 'error';
+                    results += `<div class="${cssClass}" style="margin: 10px 0; padding: 10px;">
+                        <strong>${endpoint}</strong><br>
+                        Status: ${result.status} ${result.statusText}<br>
+                        OK: ${result.ok}<br>
+                        <details>
+                            <summary>Details</summary>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </details>
+                    </div>`;
+                    
+                    console.log(`✓ ${endpoint} - ${result.status} ${result.statusText}`);
+                    
+                } catch (error) {
+                    console.error(`✗ ${endpoint} - ${error.message}`);
+                    results += `<div class="error" style="margin: 10px 0; padding: 10px;">
+                        <strong>${endpoint}</strong><br>
+                        Error: ${error.message}
+                    </div>`;
+                }
+            }
+            
+            resultsDiv.innerHTML = results;
+        }
+        
+        async function testDatabase() {
+            const resultsDiv = document.getElementById('db-results');
+            resultsDiv.innerHTML = '<p>Testing database connection...</p>';
+            
+            try {
+                console.log('Testing database via test-api.php');
+                const response = await fetch('test-api.php');
+                const data = await response.json();
+                
+                let results = '<h3>Database Test Results:</h3>';
+                
+                if (data.database_connection === 'success') {
+                    results += '<div class="success">✓ Database connection successful</div>';
+                    
+                    if (data.database_test) {
+                        results += `<div class="success">✓ Database query successful - Categories count: ${data.database_test.categories_count}</div>`;
+                    }
+                } else {
+                    results += '<div class="error">✗ Database connection failed</div>';
+                }
+                
+                results += `<details>
+                    <summary>Full Response</summary>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </details>`;
+                
+                resultsDiv.innerHTML = results;
+                console.log('Database test completed', data);
+                
+            } catch (error) {
+                console.error('Database test failed:', error);
+                resultsDiv.innerHTML = `<div class="error">Database test failed: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-run tests on page load
+        window.addEventListener('load', function() {
+            console.log('Debug page loaded');
+            console.log('Current URL:', window.location.href);
+            console.log('User agent:', navigator.userAgent);
+        });
+    </script>
+</body>
+</html>
