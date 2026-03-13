@@ -248,6 +248,77 @@ if (isset($_GET['endpoint']) && $_GET['endpoint'] === 'customers') {
     exit();
 }
 
+// Users API
+if (isset($_GET['endpoint']) && $_GET['endpoint'] === 'users') {
+    switch ($method) {
+        case 'GET':
+            try {
+                $stmt = $pdo->query("SELECT id, username, email, full_name, role, is_active FROM users");
+                $users = $stmt->fetchAll();
+                echo json_encode(['success' => true, 'data' => $users]);
+            } catch (PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+        case 'POST':
+            try {
+                $stmt = $pdo->prepare("INSERT INTO users (username, email, full_name, role, password_hash, is_active) VALUES (?, ?, ?, ?, ?, ?)");
+                $passwordHash = password_hash($input['password'], PASSWORD_DEFAULT);
+                $stmt->execute([
+                    $input['username'],
+                    $input['email'],
+                    $input['full_name'],
+                    $input['role'],
+                    $passwordHash,
+                    isset($input['is_active']) ? (int)$input['is_active'] : 1
+                ]);
+                echo json_encode(['success' => true, 'id' => $pdo->lastInsertId()]);
+            } catch (PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+        case 'PUT':
+            try {
+                $id = $input['id'];
+                $fields = ["username = ?", "email = ?", "full_name = ?", "role = ?", "is_active = ?"];
+                $params = [
+                    $input['username'],
+                    $input['email'],
+                    $input['full_name'],
+                    $input['role'],
+                    isset($input['is_active']) ? (int)$input['is_active'] : 1
+                ];
+                if (!empty($input['password'])) {
+                    $fields[] = "password_hash = ?";
+                    $params[] = password_hash($input['password'], PASSWORD_DEFAULT);
+                }
+                $params[] = $id;
+                $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                echo json_encode(['success' => true]);
+            } catch (PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+        case 'DELETE':
+            try {
+                $id = $input['id'] ?? $_GET['id'];
+                $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+                $stmt->execute([$id]);
+                echo json_encode(['success' => true]);
+            } catch (PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            break;
+    }
+    exit();
+}
+
 // Sales API
 if (isset($_GET['endpoint']) && $_GET['endpoint'] === 'sales') {
     switch ($method) {

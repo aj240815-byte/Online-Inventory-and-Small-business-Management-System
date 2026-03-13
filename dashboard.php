@@ -382,9 +382,9 @@ if ($db) {
                             </a>
                         </li>
                         <li>
-                            <a href="pages/settings.php" class="sidebar-link" data-page="settings">
-                                <i class="fas fa-cog"></i>
-                                <span>Settings</span>
+                            <a href="pages/users.php" class="sidebar-link" data-page="users">
+                                <i class="fas fa-user-shield"></i>
+                                <span>Users</span>
                             </a>
                         </li>
                     </ul>
