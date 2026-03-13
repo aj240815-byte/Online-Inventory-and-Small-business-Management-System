@@ -16,8 +16,7 @@ try {
     }
     
     require_once 'config/database.php';
-    $database = new Database();
-    $conn = $database->getConnection();
+    $conn = db_get_connection();
     
     echo "<p style='color: green;'>✓ Database connection successful</p>";
     

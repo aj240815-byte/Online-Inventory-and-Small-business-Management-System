@@ -15,8 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($username) && !empty($password)) {
         require_once 'config/database.php';
         
-        $database = new Database();
-        $conn = $database->getConnection();
+        $conn = db_get_connection();
         
         $query = "SELECT id, username, password_hash, full_name, role, is_active FROM users WHERE username = :username LIMIT 1";
         $stmt = $conn->prepare($query);

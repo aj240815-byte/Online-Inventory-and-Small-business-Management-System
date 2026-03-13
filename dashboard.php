@@ -16,8 +16,7 @@ if (isset($_GET['logout'])) {
 
 require_once 'config/database.php';
 
-$database = new Database();
-$db = $database->getConnection();
+$db = db_get_connection();
 
 // Fallback values if database connection fails
 $dashboardMetrics = [

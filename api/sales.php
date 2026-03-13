@@ -11,8 +11,7 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 require_once '../config/database.php';
 
-$database = new Database();
-$db = $database->getConnection();
+$db = db_get_connection();
 
 // Check database connection
 if (!$db) {
