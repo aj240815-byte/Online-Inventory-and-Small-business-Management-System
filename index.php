@@ -220,7 +220,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['username'])) {
         </div>
         
         <div class="login-footer">
-            <p>&copy; 2024 JIMS - Jewellery Inventory Management System</p>
+            <p>&copy; 2026 JIMS - Jewellery Inventory Management System</p>
         </div>
     </div>
 </body>

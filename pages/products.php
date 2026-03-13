@@ -478,9 +478,6 @@ require_once 'auth_check.php';
                             <label for="supplier">Supplier</label>
                             <select id="supplier" name="supplier">
                                 <option value="">Select Supplier</option>
-                                <option value="Supplier A">Supplier A</option>
-                                <option value="Supplier B">Supplier B</option>
-                                <option value="Supplier C">Supplier C</option>
                             </select>
                         </div>
                     </div>
@@ -498,7 +495,7 @@ require_once 'auth_check.php';
     <footer style="background: #2c3e50; color: white; padding: 20px 0; margin-top: auto;">
         <div class="container">
             <div style="text-align: center;">
-                <p style="margin: 0; font-size: 0.9rem;"> 2024 JIMS - Jewellery Inventory Management System</p>
+                <p style="margin: 0; font-size: 0.9rem;"> 2026 JIMS - Jewellery Inventory Management System</p>
             </div>
         </div>
     </footer>
@@ -507,13 +504,37 @@ require_once 'auth_check.php';
     <script src="../assets/js/app.js"></script>
     <script>
         const API_BASE = '../api/index.php?endpoint=products';
+        const SUPPLIERS_API = '../api/index.php?endpoint=suppliers';
         let products = [];
+        let suppliers = [];
         let currentEditId = null;
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             loadProducts();
+            loadSuppliers();
         });
+
+        async function loadSuppliers() {
+            try {
+                const response = await fetch(SUPPLIERS_API);
+                const data = await response.json();
+                if (data.success) {
+                    suppliers = data.data;
+                    populateSupplierSelect();
+                }
+            } catch (error) {
+                console.error('Error loading suppliers:', error);
+            }
+        }
+
+        function populateSupplierSelect(selectedId = '') {
+            const select = document.getElementById('supplier');
+            if (!select) return;
+            const current = select.value;
+            select.innerHTML = '<option value=\"\">Select Supplier</option>' +
+                suppliers.map(s => `<option value=\"${s.id}\" ${String(s.id) === String(selectedId || current) ? 'selected' : ''}>${s.name}</option>`).join('');
+        }
 
         // Load products from database
         async function loadProducts() {
@@ -614,6 +635,7 @@ require_once 'auth_check.php';
                 document.getElementById('status').value = product.status;
                 document.getElementById('description').value = product.description || '';
                 document.getElementById('sku').value = product.sku || '';
+                populateSupplierSelect(product.supplier);
                 document.getElementById('deleteBtn').style.display = 'inline-block';
                 document.getElementById('productModal').style.display = 'block';
             }
@@ -637,7 +659,8 @@ require_once 'auth_check.php';
                 stock: parseInt(formData.get('stock')),
                 price: parseFloat(formData.get('price')),
                 description: formData.get('description'),
-                sku: formData.get('sku') || generateSKU(formData.get('category'))
+                sku: formData.get('sku') || generateSKU(formData.get('category')),
+                supplier_id: formData.get('supplier') || null
             };
 
             if (!productData.name || !formData.get('category')) {

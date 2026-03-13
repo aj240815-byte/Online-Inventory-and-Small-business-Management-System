@@ -77,11 +77,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        /* Disable global gradient overlay on this page */
+        body::before {
+            display: none !important;
         }
         
         .login-wrapper {
@@ -98,10 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #111827;
             color: white;
             padding: 30px;
             text-align: center;
+            border-bottom: 1px solid #e5e7eb;
         }
         
         .login-header .logo {
@@ -160,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-login {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #111827;
             color: white;
             border: none;
             border-radius: 8px;
@@ -173,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
         }
         
         .alert {
@@ -195,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 8px;
             margin-top: 25px;
             font-size: 0.85rem;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #d1d5db;
         }
         
         .default-credentials strong {
@@ -207,9 +213,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .login-footer {
             text-align: center;
             margin-top: 30px;
-            color: white;
+            color: #6b7280;
             font-size: 0.85rem;
-            opacity: 0.8;
+            opacity: 0.9;
         }
         
         @media (max-width: 480px) {
@@ -274,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <div class="login-footer">
-            <p>&copy; 2024 JIMS - Jewellery Inventory Management System</p>
+            <p>&copy; 2026 JIMS - Jewellery Inventory Management System</p>
         </div>
     </div>
 </body>

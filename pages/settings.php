@@ -316,7 +316,7 @@ require_once 'auth_check.php';
 
                     <!-- Save Button -->
                     <div style="text-align: center; margin-top: 30px;">
-                        <button class="btn btn-primary">
+                        <button class="btn btn-primary" onclick="saveSettings()">
                             <i class="fas fa-save"></i> Save Settings
                         </button>
                     </div>
@@ -329,9 +329,62 @@ require_once 'auth_check.php';
     <footer style="background: #2c3e50; color: white; padding: 20px 0; margin-top: auto;">
         <div class="container">
             <div style="text-align: center;">
-                <p style="margin: 0; font-size: 0.9rem;">© 2024 JIMS - Jewellery Inventory Management System</p>
+                <p style="margin: 0; font-size: 0.9rem;">© 2026 JIMS - Jewellery Inventory Management System</p>
             </div>
         </div>
     </footer>
+    <script>
+        const SETTINGS_API = '../api/settings.php';
+
+        document.addEventListener('DOMContentLoaded', loadSettings);
+
+        async function loadSettings() {
+            try {
+                const res = await fetch(SETTINGS_API);
+                const data = await res.json();
+
+                if (data.businessName) document.getElementById('business-name').value = data.businessName;
+                if (data.businessEmail) document.getElementById('business-email').value = data.businessEmail;
+                if (data.businessPhone) document.getElementById('business-phone').value = data.businessPhone;
+                if (data.currency) document.getElementById('currency').value = data.currency;
+                if (data.timezone) document.getElementById('timezone').value = data.timezone;
+                if (data.language) document.getElementById('language').value = data.language;
+                if (data.sessionTimeout) document.getElementById('session-timeout').value = data.sessionTimeout;
+                if (data.passwordPolicy) document.getElementById('password-policy').value = data.passwordPolicy;
+            } catch (e) {
+                console.error('Failed to load settings', e);
+            }
+        }
+
+        async function saveSettings() {
+            const payload = {
+                businessName: document.getElementById('business-name').value,
+                businessEmail: document.getElementById('business-email').value,
+                businessPhone: document.getElementById('business-phone').value,
+                currency: document.getElementById('currency').value,
+                timezone: document.getElementById('timezone').value,
+                language: document.getElementById('language').value,
+                sessionTimeout: parseInt(document.getElementById('session-timeout').value, 10),
+                passwordPolicy: document.getElementById('password-policy').value,
+            };
+
+            try {
+                const res = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Settings saved successfully.');
+                } else {
+                    alert('Failed to save settings.');
+                }
+            } catch (e) {
+                console.error('Failed to save settings', e);
+                alert('Failed to save settings.');
+            }
+        }
+    </script>
 </body>
 </html>

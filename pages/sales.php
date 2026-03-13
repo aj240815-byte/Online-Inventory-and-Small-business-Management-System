@@ -476,9 +476,6 @@ require_once 'auth_check.php';
                             <label for="customer">Customer *</label>
                             <select id="customer" name="customer" required>
                                 <option value="">Select Customer</option>
-                                <option value="John Doe">John Doe</option>
-                                <option value="Jane Smith">Jane Smith</option>
-                                <option value="Walk-in Customer">Walk-in Customer</option>
                             </select>
                         </div>
                         
@@ -509,8 +506,6 @@ require_once 'auth_check.php';
                                 <label>Product *</label>
                                 <select name="product[]" class="product-select" required>
                                     <option value="">Select Product</option>
-                                    <option value="1" data-price="2999999.99">Gold Diamond Ring</option>
-                                    <option value="2" data-price="599999.99">Silver Necklace</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -553,7 +548,7 @@ require_once 'auth_check.php';
     <footer style="background: #2c3e50; color: white; padding: 20px 0; margin-top: auto;">
         <div class="container">
             <div style="text-align: center;">
-                <p style="margin: 0; font-size: 0.9rem;"> 2024 JIMS - Jewellery Inventory Management System</p>
+                <p style="margin: 0; font-size: 0.9rem;"> 2026 JIMS - Jewellery Inventory Management System</p>
             </div>
         </div>
     </footer>
@@ -561,15 +556,69 @@ require_once 'auth_check.php';
     <!-- JavaScript -->
     <script>
         const API_BASE = '../api/index.php?endpoint=sales';
+        const CUSTOMERS_API = '../api/index.php?endpoint=customers';
+        const PRODUCTS_API = '../api/index.php?endpoint=products';
         let sales = [];
+        let customers = [];
+        let products = [];
         let currentEditId = null;
         let itemCounter = 1;
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            loadSales();
-            setupEventListeners();
+            Promise.all([
+                loadCustomers(),
+                loadProductsForSelect()
+            ]).then(() => {
+                loadSales();
+                setupEventListeners();
+            });
         });
+
+        async function loadCustomers() {
+            try {
+                const res = await fetch(CUSTOMERS_API);
+                const data = await res.json();
+                if (data.success) {
+                    customers = data.data;
+                    const customerSelect = document.getElementById('customer');
+                    customerSelect.innerHTML = '<option value=\"\">Select Customer</option>' +
+                        customers.map(c => `<option value=\"${c.id}\">${c.name}</option>`).join('') +
+                        '<option value=\"walk-in\">Walk-in Customer</option>';
+                }
+            } catch (e) {
+                console.error('Error loading customers:', e);
+            }
+        }
+
+        async function loadProductsForSelect() {
+            try {
+                const res = await fetch(PRODUCTS_API);
+                const data = await res.json();
+                if (data.success) {
+                    products = data.data;
+                    refreshProductSelects();
+                }
+            } catch (e) {
+                console.error('Error loading products for sales form:', e);
+            }
+        }
+
+        function productOptionsHtml(selectedId = '') {
+            return '<option value=\"\">Select Product</option>' +
+                products.map(p => `
+                    <option value=\"${p.id}\" data-price=\"${p.selling_price}\" ${String(p.id) === String(selectedId) ? 'selected' : ''}>
+                        ${p.name}
+                    </option>
+                `).join('');
+        }
+
+        function refreshProductSelects() {
+            document.querySelectorAll('.product-select').forEach(select => {
+                const current = select.value;
+                select.innerHTML = productOptionsHtml(current);
+            });
+        }
 
         // Load sales from database
         async function loadSales() {
@@ -667,9 +716,7 @@ require_once 'auth_check.php';
                     <div class="form-group">
                         <label>Product *</label>
                         <select name="product[]" class="product-select" required>
-                            <option value="">Select Product</option>
-                            <option value="1" data-price="2999.99">Gold Diamond Ring</option>
-                            <option value="2" data-price="599.99">Silver Necklace</option>
+                            ${productOptionsHtml()}
                         </select>
                     </div>
                     <div class="form-group">
@@ -705,16 +752,14 @@ require_once 'auth_check.php';
                 document.getElementById('status').value = sale.status;
                 document.getElementById('notes').value = sale.notes || '';
                 
-                // Render items
+                // Render items (client-side detail loading not implemented; start with single blank row)
                 if (sale.items && sale.items.length > 0) {
                     document.getElementById('saleItems').innerHTML = sale.items.map(item => `
                         <div class="sale-item">
                             <div class="form-group">
                                 <label>Product *</label>
                                 <select name="product[]" class="product-select" required>
-                                    <option value="">Select Product</option>
-                                    <option value="1" data-price="2999.99" ${item.product === 'Gold Diamond Ring' ? 'selected' : ''}>Gold Diamond Ring</option>
-                                    <option value="2" data-price="599.99" ${item.product === 'Silver Necklace' ? 'selected' : ''}>Silver Necklace</option>
+                                    ${productOptionsHtml(item.productId)}
                                 </select>
                             </div>
                             <div class="form-group">
@@ -730,6 +775,28 @@ require_once 'auth_check.php';
                             </button>
                         </div>
                     `).join('');
+                } else {
+                    document.getElementById('saleItems').innerHTML = `
+                        <div class="sale-item">
+                            <div class="form-group">
+                                <label>Product *</label>
+                                <select name="product[]" class="product-select" required>
+                                    ${productOptionsHtml()}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantity *</label>
+                                <input type="number" name="quantity[]" class="quantity-input" min="1" value="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Unit Price (UGX)</label>
+                                <input type="number" name="price[]" class="price-input" min="0" step="0.01" placeholder="0.00">
+                            </div>
+                            <button type="button" class="btn-remove-item" onclick="removeItem(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
                 }
                 
                 calculateTotal();
@@ -753,9 +820,7 @@ require_once 'auth_check.php';
                 <div class="form-group">
                     <label>Product *</label>
                     <select name="product[]" class="product-select" required>
-                        <option value="">Select Product</option>
-                        <option value="1" data-price="2999.99">Gold Diamond Ring</option>
-                        <option value="2" data-price="599.99">Silver Necklace</option>
+                        ${productOptionsHtml()}
                     </select>
                 </div>
                 <div class="form-group">
@@ -825,7 +890,7 @@ require_once 'auth_check.php';
 
             const saleData = {
                 invoiceNumber: formData.get('invoiceNumber') || generateInvoiceNumber(),
-                customerId: null, // Simplified for demo
+                customerId: customer === 'walk-in' ? null : customer,
                 date: formData.get('saleDate'),
                 total: total,
                 status: formData.get('status'),

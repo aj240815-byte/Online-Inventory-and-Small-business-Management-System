@@ -1,0 +1,10 @@
+{
+    "businessName": "JIMS Jewellery Store",
+    "businessEmail": "admin@jims.com",
+    "businessPhone": "+1-800-JEWELRY",
+    "currency": "UGX",
+    "timezone": "UTC",
+    "language": "en",
+    "sessionTimeout": 30,
+    "passwordPolicy": "strong"
+}

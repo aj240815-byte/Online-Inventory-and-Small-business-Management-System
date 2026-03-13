@@ -1,26 +1,70 @@
 <?php
 session_start();
 
-// Debug: Log session status
-error_log("Dashboard accessed - Session ID: " . session_id());
-error_log("Session data: " . print_r($_SESSION, true));
-
 // Check if user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
-    error_log("User not logged in, redirecting to login.php");
     header('Location: login.php');
     exit();
 }
 
 // Handle logout
 if (isset($_GET['logout'])) {
-    error_log("Logout requested");
     session_destroy();
     header('Location: login.php');
     exit();
 }
 
-error_log("User authenticated, loading dashboard");
+require_once 'config/database.php';
+
+$database = new Database();
+$db = $database->getConnection();
+
+// Fallback values if database connection fails
+$dashboardMetrics = [
+    'total_products' => 0,
+    'total_sales' => 0,
+    'total_customers' => 0,
+    'total_revenue' => 0,
+];
+
+$recentSales = [];
+
+if ($db) {
+    // Use current month as default period for sales / revenue
+    $dateFrom = date('Y-m-01');
+    $dateTo = date('Y-m-d');
+
+    // High-level metrics for cards (use positional parameters to avoid driver issues)
+    $metricsQuery = "
+        SELECT 
+            (SELECT COUNT(*) FROM products WHERE is_active = 1) AS total_products,
+            (SELECT COUNT(*) FROM customers WHERE is_active = 1) AS total_customers,
+            (SELECT COUNT(*) FROM sales WHERE sale_date BETWEEN ? AND ?) AS total_sales,
+            (SELECT COALESCE(SUM(total_amount), 0) FROM sales WHERE sale_date BETWEEN ? AND ?) AS total_revenue
+    ";
+
+    $metricsStmt = $db->prepare($metricsQuery);
+    $metricsStmt->execute([$dateFrom, $dateTo, $dateFrom, $dateTo]);
+    $dashboardMetrics = $metricsStmt->fetch(PDO::FETCH_ASSOC) ?: $dashboardMetrics;
+
+    // Recent sales activity for "Recent Activity" section
+    $recentSalesQuery = "
+        SELECT 
+            s.invoice_number,
+            s.sale_date,
+            s.total_amount,
+            s.payment_status,
+            c.name AS customer_name
+        FROM sales s
+        LEFT JOIN customers c ON s.customer_id = c.id
+        ORDER BY s.created_at DESC
+        LIMIT 5
+    ";
+
+    $recentSalesStmt = $db->prepare($recentSalesQuery);
+    $recentSalesStmt->execute();
+    $recentSales = $recentSalesStmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -364,7 +408,9 @@ error_log("User authenticated, loading dashboard");
                         </div>
                         <div class="stat-content">
                             <h3>Total Products</h3>
-                            <p class="stat-number">0</p>
+                            <p class="stat-number">
+                                <?php echo number_format((int)($dashboardMetrics['total_products'] ?? 0)); ?>
+                            </p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -372,8 +418,10 @@ error_log("User authenticated, loading dashboard");
                             <i class="fas fa-shopping-bag"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>Total Sales</h3>
-                            <p class="stat-number">0</p>
+                            <h3>Total Sales (This Month)</h3>
+                            <p class="stat-number">
+                                <?php echo number_format((int)($dashboardMetrics['total_sales'] ?? 0)); ?>
+                            </p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -382,7 +430,9 @@ error_log("User authenticated, loading dashboard");
                         </div>
                         <div class="stat-content">
                             <h3>Customers</h3>
-                            <p class="stat-number">0</p>
+                            <p class="stat-number">
+                                <?php echo number_format((int)($dashboardMetrics['total_customers'] ?? 0)); ?>
+                            </p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -390,8 +440,10 @@ error_log("User authenticated, loading dashboard");
                             <i class="fas fa-chart-line"></i>
                         </div>
                         <div class="stat-content">
-                            <h3>Revenue</h3>
-                            <p class="stat-number">UGX 0</p>
+                            <h3>Revenue (This Month)</h3>
+                            <p class="stat-number">
+                                UGX <?php echo number_format((float)($dashboardMetrics['total_revenue'] ?? 0), 0); ?>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -435,33 +487,39 @@ error_log("User authenticated, loading dashboard");
                 <div class="section">
                     <h2>Recent Activity</h2>
                     <div class="activity-list">
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-info-circle"></i>
+                        <?php if (!empty($recentSales)): ?>
+                            <?php foreach ($recentSales as $sale): ?>
+                                <div class="activity-item">
+                                    <div class="activity-icon">
+                                        <i class="fas fa-receipt"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <h4>
+                                            Sale to
+                                            <?php echo htmlspecialchars($sale['customer_name'] ?: 'Walk-in Customer'); ?>
+                                        </h4>
+                                        <p>
+                                            Invoice
+                                            <?php echo htmlspecialchars($sale['invoice_number']); ?>
+                                            &middot;
+                                            UGX <?php echo number_format((float)$sale['total_amount'], 0); ?>
+                                            &middot;
+                                            <?php echo htmlspecialchars(date('d M Y', strtotime($sale['sale_date']))); ?>
+                                        </p>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <h4>No recent sales yet</h4>
+                                    <p>Process a sale and it will appear here as recent activity.</p>
+                                </div>
                             </div>
-                            <div class="activity-content">
-                                <h4>Welcome to JIMS</h4>
-                                <p>Start by adding your first product to begin managing your jewellery inventory.</p>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-lightbulb"></i>
-                            </div>
-                            <div class="activity-content">
-                                <h4>Getting Started</h4>
-                                <p>Use the Products page to add your jewellery items and manage stock levels.</p>
-                            </div>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="activity-content">
-                                <h4>Sales Analytics</h4>
-                                <p>Your sales data and reports will appear here once you start processing orders.</p>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </main>
@@ -472,7 +530,7 @@ error_log("User authenticated, loading dashboard");
     <footer style="background: #2c3e50; color: white; padding: 20px 0; margin-top: auto;">
         <div class="container">
             <div style="text-align: center;">
-                <p style="margin: 0; font-size: 0.9rem;">© 2024 JIMS - Jewellery Inventory Management System</p>
+                <p style="margin: 0; font-size: 0.9rem;">© 2026 JIMS - Jewellery Inventory Management System</p>
             </div>
         </div>
     </footer>

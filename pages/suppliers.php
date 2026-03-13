@@ -495,7 +495,7 @@ require_once 'auth_check.php';
     <footer style="background: #2c3e50; color: white; padding: 20px 0; margin-top: auto;">
         <div class="container">
             <div style="text-align: center;">
-                <p style="margin: 0; font-size: 0.9rem;">© 2024 JIMS - Jewellery Inventory Management System</p>
+                <p style="margin: 0; font-size: 0.9rem;">© 2026 JIMS - Jewellery Inventory Management System</p>
             </div>
         </div>
     </footer>
